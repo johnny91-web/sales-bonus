@@ -5,11 +5,11 @@
  * @returns {number}
  */
 function calculateSimpleRevenue(purchase, _product) {
-    const { sale_price: salePrice } = _product;
-    const { quantity, discount = 0 } = purchase;
-    const discountFactor = 1 - (discount / 100);
-    return salePrice * quantity * discountFactor;
-}
+    const { discount, sale_price, quantity } = purchase;
+    const discountAmount = sale_price * (discount / 100);
+    const finalPrice = sale_price - discountAmount;
+    return finalPrice * quantity;
+    }
 
 /**
  * Функция для расчета бонусов
@@ -61,7 +61,7 @@ function analyzeSalesData(data, options) {
     // Подготовка статистики
     const sellerStats = data.sellers.map(seller => ({
         seller_id: seller.id,
-        name: seller.name,
+        name: `${seller.first_name} ${seller.last_name}`,
         sales_count: 0,
         revenue: 0,
         profit: 0,
