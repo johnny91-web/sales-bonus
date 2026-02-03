@@ -45,10 +45,10 @@ function analyzeSalesData(data, options) {
   const { calculateRevenue, calculateBonus } = options;
   if (
     !data ||
-    !Array.isArray(data.sellers) ||
-    !Array.isArray(data.products) ||
-    !Array.isArray(data.purchase_records)||
-    data.purchase_records.length === 0 
+  !Array.isArray(data.sellers) || data.sellers.length === 0 ||
+  !Array.isArray(data.products) || data.products.length === 0 ||
+  !Array.isArray(data.purchase_records) 
+  
   ) {
     throw new Error("Некорректные входные данные");
   }
@@ -82,38 +82,37 @@ function analyzeSalesData(data, options) {
   });
 
   data.purchase_records.forEach((record) => {
+  const sellerStat = sellersStats[record.seller_id];
+  if (!sellerStat) return;
 
-    const sellerStat = sellersStats[record.seller_id];
-    sellerStat.sales_count += 1;
-    sellerStat.revenue += record.total_amount;
+  sellerStat.sales_count += 1;
+  sellerStat.revenue += record.total_amount; // ← Только из total_amount
 
-   record.items.forEach((item) => {
-  const product = productIndex[item.sku];
-  if (!product) {
-    console.warn(`Товар с SKU ${item.sku} не найден`);
-    return;
-  }
+  record.items.forEach((item) => {
+    const product = productIndex[item.sku];
+    if (!product) {
+      console.warn(`Товар с SKU ${item.sku} не найден`);
+      return;
+    }
 
-  const purchasePrice = product.purchase_price || 0;
-  const salePrice = item.sale_price || 0;
-  const quantity = Number(item.quantity) || 0;
-  const discount = item.discount || 0;
+    const purchasePrice = product.purchase_price || 0;
+    const salePrice = item.sale_price || 0;
+    const quantity = Number(item.quantity) || 0;
+    const discount = item.discount || 0;
 
-  const discountAmount = salePrice * (discount / 100);
-  const finalPrice = salePrice - discountAmount;
-  const itemRevenue = finalPrice * quantity;
-  const itemCost = purchasePrice * quantity;
-  const itemProfit = itemRevenue - itemCost;
+    const finalPrice = salePrice * (1 - discount / 100);
+    const itemRevenue = finalPrice * quantity;
+    const itemCost = purchasePrice * quantity;
+    const itemProfit = itemRevenue - itemCost;
 
-  sellerStat.profit += itemProfit;
-  sellerStat.revenue += itemRevenue; // ⚠️ У вас revenue += record.total_amount — ок, но можно сверить
+    sellerStat.profit += itemProfit;
 
-  if (!sellerStat.products_sold[item.sku]) {
-    sellerStat.products_sold[item.sku] = 0;
-  }
-  sellerStat.products_sold[item.sku] += quantity;
-});
+    if (!sellerStat.products_sold[item.sku]) {
+      sellerStat.products_sold[item.sku] = 0;
+    }
+    sellerStat.products_sold[item.sku] += quantity;
   });
+});
   const sortedSellers = Object.values(sellersStats).sort(
     (a, b) => b.profit - a.profit
   );
